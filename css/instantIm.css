@@ -1,0 +1,68 @@
+#instantIm{z-index:1000000; color:#666; font:12px/1.6 'arial','SimSun'!important; position:fixed; _position:absolute; bottom:1px; right:2px; text-align:left;
+           _top:expression(documentElement.scrollTop+documentElement.clientHeight-this.offsetHeight)}
+#instantIm a{text-decoration:none}
+#instantIm .gb{background-image:url('/img/instant.gif'); background-repeat:repeat-x}
+#instantIm .load{background:url('/img/loading.gif') no-repeat center center}
+/*状态栏*/
+#instantIm .inbar{height:40px}
+/*联系人栏*/
+#instantIm .inct,#instantIm .dialogue{width:200px;height:37px; line-height:37px; background-position:0 0; padding-left:15px; border:1px solid #c8c8c8; cursor:pointer; float:right; _height:29px}
+#instantIm .inctred,#instantIm .diared{background-position:0 -37px; color:#fff; border:1px solid #900002}
+#instantIm .inctred .cRed,#instantIm .diared .cRed{color:#fff}
+#instantIm .inctred .ingif{margin-left:3px}
+/*对话栏*/
+#instantIm .dialogue{margin-right:-220px;display:none}/*margin-right:6px*/
+/*#instantIm .diared{}*/
+/*用户列表*/
+#instantIm .userList{height:390px; width:215px; border:1px solid #9e9e9e; position:absolute; bottom:-393px; background:#fff; display:none; right:0/*; _bottom:0 !important*/}
+#instantIm .intop{height:25px; background-position:0 -104px; line-height:25px; -moz-user-select:none; -khtml-user-select:none; user-select:none}
+#instantIm .intop div.intit{color:#fff; padding:0 5px; float:left}
+#instantIm .userList .intop div.linev{height:24px; width:1px; overflow:hidden; background:#DA6266; border-right:1px solid #BA2025; float:left}
+#instantIm .intop div.hand{cursor:pointer; height:23px; width:30px; background-position:-18px -155px; float:right}
+#instantIm .intip{height:30px; background-position:0 -74px; line-height:30px}
+#instantIm .intip .gb{height:14px; width:14px; display:inline; float:left; background-position:0 -148px; margin:8px 2px 0 5px}
+#instantIm .userList .inlist{height:277px; padding:10px; overflow-y:auto; overflow-x:hidden}
+#instantIm .userList .inlist ul{margin:0;padding:0}
+#instantIm .userList .inlist li{list-style:none; line-height:25px; padding:0 0 0 18px;
+                                background:url('/img/offline.jpg') no-repeat 3px center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+#instantIm .userList .inlist li.on{background:url('/img/online.jpg') no-repeat 3px center}
+#instantIm .userList .inlist li.m{opacity:0;filter:alpha(opacity=0)}
+#instantIm .userList .inlist li a{color:#4a4a4a}
+#instantIm .userList .inlist li a:hover{color:#369}
+#instantIm .userList .inbot{height:28px; background-position:0 -178px; padding:10px 0 0 100px; cursor:pointer}
+#instantIm .userList .inbot .gb{height:15px; width:18px; background-position:0 -163px; display:block}
+/*对话框*/
+#instantIm .dialog{width:340px; height:340px; border:1px solid #9E9E9E; position:absolute; right:40px; top:40px; background:#fff; display:none; z-index:1}/*top:-350px; right:400px*/
+#instantIm .dialog div.intop div.intit{width:272px}
+#instantIm .dialog div.handx{width:28px; background-position:-48px -155px}
+#instantIm .dialog .msg{height:168px; overflow-y:auto; overflow-x:hidden; padding:10px}
+#instantIm .dialog .msg .inname{height:22px; line-height:22px}
+#instantIm .dialog .msg .inname span{color:#9e9e9e; float:right; font-size:8px; -webkit-text-size-adjust:none}
+#instantIm .dialog .msg .content{color:#303030; padding-left:20px}
+#instantIm .dialog .sending{background:url('/img/onLoad.gif') no-repeat 99% 99%}
+#instantIm .dialog .infoot{height:84px; background:#EFEFEF; padding:6px 8px; border-top:1px solid #C9C9C9}
+#instantIm .dialog .infoot .send{clear:both; height:56px}
+#instantIm .dialog .infoot .send .sb{height:54px; float:left; display:inline; width:70px; border:1px solid #A8A8A8; border-left:none}
+#instantIm .dialog .infoot .send .gb{width:55px; height:44px; background-position:-79px -130px;
+                                    margin:5px 8px; cursor:pointer; line-height:44px; text-align:center; color:#4a4a4a}
+#instantIm .dialog .infoot .send textarea{height:51px; width:241px; border:1px solid #A8A8A8; padding:3px 0 0 5px;
+                                        overflow:auto; background:url('/img/limitLength.jpg') no-repeat 0 0; float:left}
+#instantIm .dialog .infoot .send textarea:focus{border:1px solid #6D6D6D; border-color:rgba(109,109,109,0.8); outline:0;
+	-webkit-box-shadow:inset 0 1px 1px rgba(0,0,0,0.075),0 0 8px rgba(109,109,109,0.6);
+	-moz-box-shadow:inset 0 1px 1px rgba(0,0,0,0.075),0 0 8px rgba(109,109,109,0.6);
+	box-shadow:inset 0 1px 1px rgba(0,0,0,0.075),0 0 8px rgba(109,109,109,0.6)}
+#instantIm .dialog .infoot .ftip{height:23px; line-height:28px; margin-top:3px}
+#instantIm .dialog .infoot .ftip .gb{width:15px; height:17px; float:left; background-position:0 -129px; margin:5px 5px 0  0; display:inline}
+
+
+/*系统消息*/
+.SMSG{position:absolute;/*left:50%;top:50%;*/border:1px solid #A2A2A2;;background:#F3F3F3;width:527px;/*margin:-83px 0 0 -263px;*/z-index:1113;display:none}
+.SMSG .gb{background:url('/img/systemMSG.gif') repeat-x 0 0;}
+.SMSG .t{height:28px;padding:0 8px;background-position:0 -57px;font-weight:700;line-height:28px}
+.SMSG .t .close{line-height:0.6;right:8px;top:5px;_line-height:1}
+.SMSG .t .ling{background-position:3px -85px;width:18px;height:13px;margin-top:8px}
+.SMSG .c{padding:12px;line-height:20px;color:#3d3d3d}
+.SMSG .c .text{min-height:80px;_height:80px;padding-bottom:6px}
+.SMSG .c .tr{height:27px}
+.SMSG .c .tr .b{background-position:0 0;height:29px;width:69px;line-height:27px;text-align:center;display:block;color:#3d3d3d}
+.SMSG .b:hover{background-position:0 -28px;text-decoration:none}

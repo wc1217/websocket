@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>socket.io test</title>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <script type="text/javascript" src="/nodejs/dist/socket.io.js"></script>
+    </head>
+    <body>
+        <div>TODO write content</div>
+        <script>
+            var socket = io.connect('http://127.0.0.1:8080');
+            socket.on('news', function (data) {
+                console.log(data);
+                socket.emit('my other event', { my: 'data' });
+            });
+        </script>
+    </body>
+</html>

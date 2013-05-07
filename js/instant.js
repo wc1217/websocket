@@ -146,7 +146,7 @@ $(function(){
                 })
                 _in.socket.addEventListener('close',function(event){
                     _in.logDump('CLOSE: ' + event.code + ', ' + event.reason);
-                    _in.target.remove();
+                    _in.target && _in.target.remove();
                 });
             }else{
                 alert('该浏览器不支持, 请使用Chrome or firefox.');

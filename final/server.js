@@ -56,9 +56,11 @@ wss.on('connection', function(ws){
         }));
     }
     ws.on('close',function(){
-        ws.token = null;
-        delete onlineUser[ws.userId];
-        noticeOnline();
+        if(ws.token){
+            ws.token = null;
+            delete onlineUser[ws.userId];
+            noticeOnline();
+        }
         logSave('close connect!');
     }).on('message', function(msg){
         var data = JSON.parse(msg);
@@ -79,7 +81,17 @@ wss.on('connection', function(ws){
             //用户登录
             case EVENT_TYPE.LOGIN:
                 //在此认证用户
-                var token = data.d.split(','), u = token[1], v = token[0];
+                var token = data.d.split(','), u = token[1], v = token[0]
+                ,lodws = onlineUser[u];
+                if(lodws){
+                    //多处登录的处理
+                    lodws.send(JSON.stringify({
+                        't': EVENT_TYPE.ERROR,
+                        'message': '您的账号在别处登录,你被迫下线!\n远端IP:'+ws._socket.remoteAddress
+                    }));
+                    lodws.token = false;
+                    lodws.close();
+                }
 
                 ws.userId = u;
                 ws.token = v;//令牌
@@ -117,7 +129,7 @@ wss.on('connection', function(ws){
                             't': data.t
                         }));
                     }else{
-                        //留言的逻辑
+                    //留言的逻辑
                     }
                     
                 }else{

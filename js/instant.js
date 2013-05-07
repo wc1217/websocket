@@ -63,13 +63,14 @@ $(function(){
 
         Finterval:{},//消息闪烁
 
-        writeLock:false,//同步锁
+        socket:null,//websocket
 
         docTitle:document.title,//网页标题
 
         config:{
             animate:!$.browser.msie,//开启动画(ie不开)?
             drag:true,//开启拖动
+            wsURI:'ws://127.0.0.1:8080',//ws url
             loadURI:'/lately.php',//最近联系人
             onlineURI:'/chat/getonline.html',//在线用户
             onlineTime:1000*60*5,//在线用户重新加载时间
@@ -98,8 +99,7 @@ $(function(){
             if(_in.target==null && userid){
                 _in.config.tsStamp = userid+''+_in.config.tsStamp;
                 //初始化comet
-                //_in.webComet();
-                _in.loadUI();
+                _in.webComet();
                 $.chatIn = function(uid){
                     _in.chat(uid);
                 }
@@ -428,7 +428,11 @@ $(function(){
         },
         //通信核心
         webComet:function(){
-            
+            var _in = this, socket = window.WebSocket || window.MozWebSocket;
+            if(socket)
+                _in.socket = new socket(_in.config.wsURI);
+            if(_in.socket)
+                _in.loadUI();
         },
         //闪烁用户BAR
         flickerBar:function(uid){

@@ -1,5 +1,5 @@
 var app = require('http').createServer(handler)
-, io = require('C://Users//WangChao//AppData//Roaming//npm//node_modules//socket.io').listen(app)
+, io = require('socket.io').listen(app)
 , fs = require('fs')
 
 app.listen(8080);

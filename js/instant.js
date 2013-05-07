@@ -68,20 +68,19 @@ $(function(){
         docTitle:document.title,//网页标题
 
         config:{
+            EVENT_TYPE : {
+                'LOGIN':'i',//登录
+                'LOGOUT':'o',//退出
+                'SPEAK':'s',//对话
+                'LIST':'l',//用户列表
+                'ERROR':'e',//错误
+                'HISTORY':'h'//对话记录
+            },
             animate:!$.browser.msie,//开启动画(ie不开)?
             drag:true,//开启拖动
             wsURI:'ws://127.0.0.1:8080',//ws url
-            loadURI:'/lately.php',//最近联系人
-            onlineURI:'/chat/getonline.html',//在线用户
             onlineTime:1000*60*5,//在线用户重新加载时间
-            getName:'/chat/getName.html',
-            pollURI:'/chat/poll.html',//获取新消息页面(长轮循)
-            pollSuccessTime:1000*3,//成功之后的重新开始时间
-            pollErrorTime:1000*10,//错误之后的重新开始时间
-            pollListenTime:1000*30,//等待唤醒时间(与后端对应)
-            tsStamp:Math.round(new Date().getTime()/1000),//本实例的timeStamp + uid
-            isStamp:false,//是否活动的
-            pollErrorNum:0,//未知错误
+            token:Math.round(new Date().getTime()/1000),//本实例的timeStamp + uid
             pollErrorLimit:0,//未知错误重试次数
             userid:function(){//测试用户id
                 var id = $('#webIn');
@@ -97,7 +96,7 @@ $(function(){
         init:function(){
             var _in = this, userid = _in.config.userid();
             if(_in.target==null && userid){
-                _in.config.tsStamp = userid+''+_in.config.tsStamp;
+                _in.config.token += ''+userid;
                 //初始化comet
                 _in.webComet();
                 $.chatIn = function(uid){
@@ -218,17 +217,26 @@ $(function(){
                 _in.indialog[uid].textarea.val('');
                 if(msg.length>0&&msg.length<200){
                     _in.indialog[uid].msg.addClass('sending');
-                    $.post('/chat/send.html', {
-                        uid:uid,
-                        msg:msg
-                    }, function(res){
-                        if(res.name){
-                            var msg = _in.indialog[uid].msg.append(_in.sprintf(_in.config.userHis, res)).removeClass('sending')[0];
-                            msg.scrollTop=msg.scrollHeight;
+                    
+                    var sent = {
+                        t:_in.config.EVENT_TYPE.SPEAK,
+                        d:{
+                            uid:uid,
+                            msg:msg
                         }
-                        if(_in.userData[uid].type==='temp')
-                            _in.initList();
-                    },'json');
+                    },res = {
+                        'create':_in.getDatetime(true),
+                        'content':msg,
+                        'name':uid
+                    }
+                    _in.socket.send(JSON.stringify(sent));
+                    
+                    if(res.name){
+                        var msgBox = _in.indialog[uid].msg.append(_in.sprintf(_in.config.userHis, res)).removeClass('sending')[0];
+                        msgBox.scrollTop=msgBox.scrollHeight;
+                    }
+                    if(_in.userData[uid].type==='temp')
+                        _in.initList();
                 }else{
                     alert('请输入消息内容(不大于200个字符)! ');
                 }
@@ -431,8 +439,24 @@ $(function(){
             var _in = this, socket = window.WebSocket || window.MozWebSocket;
             if(socket)
                 _in.socket = new socket(_in.config.wsURI);
-            if(_in.socket)
-                _in.loadUI();
+            if(_in.socket){
+                _in.socket.addEventListener('open',function(event){
+                    console.log('TIMESTAMP : '+event.timeStamp);
+                    _in.loadUI();
+                })
+                _in.socket.addEventListener('error',function(event){
+                    console.log('ERROR: ' + event.message);
+                })
+                _in.socket.addEventListener('message',function(event){
+                    console.log(event);
+                    console.log(_in.getDatetime(event.timeStamp))
+                })
+                _in.socket.addEventListener('close',function(event){
+                    console.log('CLOSE: ' + event.code + ', ' + event.reason);
+                });
+            }else{
+                alert('该浏览器不支持, 请使用Chrome or firefox.');
+            }
         },
         //闪烁用户BAR
         flickerBar:function(uid){
@@ -579,6 +603,11 @@ $(function(){
                     }
                 },'json');
             }
+        },
+        getDatetime:function(ts,time){
+            var dt = ts ? new Date(ts) : new Date()
+            , s = dt.getFullYear() + '-' + (dt.getMonth() + 1) + '-' + dt.getDate() + (time  ? '' : (' ' +  dt.getHours() + ':' + dt.getMinutes() + ':' + dt.getSeconds()));
+            return (s).replace(/([\-\: ])(\d{1})(?!\d)/g, '$10$2');
         }
     }
     instantIm.init();

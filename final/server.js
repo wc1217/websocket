@@ -14,14 +14,43 @@ var wss = new WebSocketServer({
     'ERROR':'e',//错误
     'HISTORY':'h'//对话记录
 };
-wss.on('connection', function (ws) {
+wss.on('connection', function(ws){
     logSave('connection complete!');
-    ws.on('close',function () {
+    ws.on('close',function(){
         logSave('close connect!');
-    }).on('message', function (msg) {
-        switch(msg){
+    }).on('message', function(msg){
+        var data = JSON.parse(msg);
+        if(!data || !data.t){
+            logSave('message:' + msg);
+            ws.send(JSON.stringify({
+                'message': msg,
+                't': EVENT_TYPE.ERROR
+            }));
+            return;
+        }
+        switch(data.t){
+            //用户登录
             case EVENT_TYPE.LOGIN:
 
+                break;
+            //退出
+            case EVENT_TYPE.LOGOUT:
+
+                break;
+            //对话
+            case EVENT_TYPE.SPEAK:
+                ws.send('回复: ' + data.d.msg);
+                break;
+            //用户列表
+            case EVENT_TYPE.LIST:
+
+                break;
+            //错误
+            case EVENT_TYPE.ERROR:
+
+                break;
+            //对话记录
+            case EVENT_TYPE.HISTORY:
 
                 break;
 
@@ -29,8 +58,8 @@ wss.on('connection', function (ws) {
                 ws.close();
                 break;
         }
-    }).on('error', function() {
-        console.log(Array.prototype.join.call(arguments, ", "));
+    }).on('error', function(){
+        logSave(Array.prototype.join.call(arguments, ", "));
     })
 });
 /**

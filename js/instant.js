@@ -1,43 +1,4 @@
 $(function(){
-    /*
-     t.repeat(function(){
-                t.toggleClass('inctred');
-            },4,300,function(){
-                t.addClass('inctred');
-            });*/
-    $.fn.repeat = function(fn,limit,time,last){
-        this.queue('cym_fs',[]);
-        for(var i=0;i<=limit;i++){
-            this.queue('cym_fs', function(){
-                var self = this;
-                fn();
-                setTimeout(function() {
-                    $(self).dequeue('cym_fs');
-                }, time||1000);
-            });
-        }
-        if(typeof last=='function'){
-            this.queue('cym_fs', function(){
-                last();
-                $(this).dequeue('cym_fs');
-            });
-        }
-        return this.dequeue('cym_fs');
-    };
-
-    $.fn.flicker = function(){
-        var _in = instantIm;
-        for(var i in _in.Finterval){
-            clearInterval(_in.Finterval[i]);
-        }
-        this.each(function(){
-            var that = $(this);
-            _in.Finterval.push(setInterval(function(){
-                that.toggleClass('m');
-            },300));
-        });
-    }
-     
     var instantIm = {
         target:null,//容器对象
 
@@ -55,12 +16,6 @@ $(function(){
 
         userTarget:{},//存储用户列表对li对象,因为json不支持dom
 
-        store:null,//存储对象
-
-        unReadUser:{},//有未读消息的用户
-
-        unReadList:{},//所有未读消息
-
         Finterval:{},//消息闪烁
 
         socket:null,//websocket
@@ -76,32 +31,111 @@ $(function(){
                 'ERROR':'e',//错误
                 'HISTORY':'h'//对话记录
             },
+            debug:true,
             animate:!$.browser.msie,//开启动画(ie不开)?
             drag:true,//开启拖动
             wsURI:'ws://127.0.0.1:8080',//ws url
-            onlineTime:1000*60*5,//在线用户重新加载时间
             token:Math.round(new Date().getTime()/1000),//本实例的timeStamp + uid
             pollErrorLimit:0,//未知错误重试次数
             userid:function(){//测试用户id
                 var id = $('#webIn');
                 return id.length ? parseInt(id.attr('uid')) : false;
             },
+            userInfo:{},
             wrap:'<div id="instantIm"><div class="inbar"><div class="inct gb">联系人[<span class="cRed">0</span>/<span>0</span>]<span class="ingif"></span></div></div></div>',
-            list:'<div class="userList"><div class="intop gb"><div class="hand gb"></div><div class="intit">联系人</div><div class="linev"></div></div><div class="intip gb"><span class="gb"></span>清除聊天记录即可删除联系人。</div><div class="inlist"><ul></ul></div><div class="inbot gb"><span class="gb"></span></div>',
-            userList:'<li class="uid-{$uid}"><a href="javascript:;" title="最近通话时间: {$modify}">{$name}</a></li>',
-            dialog:'<div class="dialog"><div class="intop gb"><div class="hand gb handx"></div><div class="hand gb"></div><div class="intit">联系人</div></div><div class="intip gb"><span class="gb"></span><span></span></div><div class="msg"></div><div class="infoot"><div class="send"><textarea></textarea><div class="sb"><div class="gb">发送</div></div></div><div class="ftip"><span class="gb"></span><a href="javascript:;" style="float:right">《消息系统使用规则》</a><a href="/member/#/personal.html" target="_blank" class="chatlog">对话记录</a></div></div></div>',
+            list:'<div class="userList"><div class="intop gb"><div class="hand gb"></div><div class="intit">联系人</div><div class="linev"></div></div><div class="intip gb"><span class="gb"></span>这是联系人列表。</div><div class="inlist"><ul></ul></div><div class="inbot gb"><span class="gb"></span></div>',
+            userList:'<li class="uid-{$uid}"><a href="javascript:;" title="{$name}">{$name}</a></li>',
+            dialog:'<div class="dialog"><div class="intop gb"><div class="hand gb handx"></div><div class="hand gb"></div><div class="intit">联系人</div></div><div class="intip gb"><span class="gb"></span><span></span></div><div class="msg"></div><div class="infoot"><div class="send"><textarea></textarea><div class="sb"><div class="gb">发送</div></div></div><div class="ftip"><span class="gb"></span><a href="javascript:;" style="float:right">《消息系统使用规则》</a><a href="javascript:;" target="_blank" class="chatlog">对话记录</a></div></div></div>',
             userBar:'<div class="dialogue gb" uid="{$uid}">与“{$name}”对话中...</div>',
             userHis:'<div class="inname"><span>{$create}</span><a href="javascript:;">{$name}</a></div><div class="content">{$content}</div>'
         },
-        init:function(){
-            var _in = this, userid = _in.config.userid();
+        logDump:function(str) {
+            this.config.debug && console.log(this.getDatetime() + ' : ' + str);
+        },
+        init:function(userid){
+            var _in = this;//, userid = _in.config.userid();
             if(_in.target==null && userid){
-                _in.config.token += ''+userid;
+                _in.config.token = _in.config.token+','+userid;
                 //初始化comet
                 _in.webComet();
                 $.chatIn = function(uid){
                     _in.chat(uid);
                 }
+            }
+            return _in;
+        },
+        //通信核心
+        webComet:function(){
+            var _in = this, socket = window.WebSocket || window.MozWebSocket, EVENT_TYPE = _in.config.EVENT_TYPE
+            , send = function(data){
+                _in.socket.send(JSON.stringify(data));
+            };
+            if(socket)
+                _in.socket = new socket(_in.config.wsURI);
+            if(_in.socket){
+                _in.socket.addEventListener('open',function(event){
+                    _in.logDump('TIMESTAMP : '+event.timeStamp);
+                    _in.loadUI();
+                    //用户登录
+                    send({
+                        't': EVENT_TYPE.LOGIN,
+                        'd': _in.config.token
+                    });
+                })
+                _in.socket.addEventListener('error',function(event){
+                    _in.logDump('ERROR: ' + event.message);
+                })
+                _in.socket.addEventListener('message',function(event){
+                    //_in.logDump(_in.getDatetime(event.timeStamp));
+                    try{
+                        var data = JSON.parse(event.data);
+                    }catch(e){}
+                    if(!data || !data.t){
+                        _in.logDump('errorMessage:' + event.data);
+                        return;
+                    }
+                    switch(data.t){
+                        //用户登录
+                        case EVENT_TYPE.LOGIN:
+                            _in.logDump('Login:' + _in.getDatetime(event.timeStamp));
+                            //登录成功在此认证
+                            if(data.d){
+                                _in.config.userInfo = data.d;//得到令牌
+                            }
+                            break;
+                        //退出
+                        case EVENT_TYPE.LOGOUT:
+
+                            break;
+                        //对话
+                        case EVENT_TYPE.SPEAK:
+                            _in.logDump('Speak:' + _in.getDatetime(event.timeStamp));
+                            break;
+                        //用户列表
+                        case EVENT_TYPE.LIST:
+                            _in.logDump('List:' + _in.getDatetime(event.timeStamp));
+                            _in.initList(JSON.parse(data.d));
+                            break;
+                        //错误
+                        case EVENT_TYPE.ERROR:
+                            alert(data.message);
+                            break;
+                        //对话记录
+                        case EVENT_TYPE.HISTORY:
+
+                            break;
+
+                        default :
+                            _in.socket.close();
+                            break;
+                    }
+                })
+                _in.socket.addEventListener('close',function(event){
+                    _in.logDump('CLOSE: ' + event.code + ', ' + event.reason);
+                    _in.target.remove();
+                });
+            }else{
+                alert('该浏览器不支持, 请使用Chrome or firefox.');
             }
         },
         //加载UI
@@ -112,11 +146,6 @@ $(function(){
             _in.inbar = _in.target.find('.inbar').eq(0);
             _in.inuser = _in.initUserList();//列表框
             _in.inct = _in.initBar();//联系Bar,人数
-            _in.initList();//加载用户列表
-            //延时加载在线用户列表
-            setInterval(function(){
-                _in.initList();
-            }, _in.config.onlineTime);
         },
         //加载联系人栏
         initBar:function(){
@@ -126,7 +155,7 @@ $(function(){
                 _t.inuser.show().animate({
                     bottom:'1px'
                 },{
-                    duration:'slow',
+                    duration:600,
                     easing:'easeOutExpo'
                 }).status = 'block';
                 _t.eachFlicker();
@@ -140,7 +169,7 @@ $(function(){
                 //隐藏用户框(始终动画)
                 _u.animate({
                     bottom:'-393px'
-                },'slow', 'easeInExpo', function(){
+                },'fast', 'easeInExpo', function(){
                     _u.hide().status = 'none';
                     _in.clearFlicker();
                     if($.isEmptyObject(_in.unReadList)){
@@ -156,26 +185,22 @@ $(function(){
             return _u;
         },
         //加载用户列表(包含更新)
-        initList:function(){
+        initList:function(res){
             var _in = this,html='',o = 0;
-            $.post(_in.config.loadURI,function(res){
-                if(!res)return;
-                $.each(res.data||[], function(i,n){
-                    _in.userData[n.uid] = {
-                        name:n.name,
-                        modify:n.modify,
-                        content:n.msg,
-                        status:n.status||'offline'
-                    };
-                    html+=_in.sprintf(_in.config.userList,n);
-                });
-                _in.inlist.html(html).find('li').each(function(){
-                    var _t = $(this),id = parseInt(_t.attr('class').substr(4));
-                    _in.userTarget[id] = _t;
-                    _in.userData[id].status == 'online' && _t.addClass('on') && o++;
-                });
-                _in.inct.find('span').eq(0).text(o||0).end().eq(1).text(res.total||0);
-            },'json');
+            $.each(res.data||[], function(i,n){
+                _in.userData[n.uid] = {
+                    name:n.name,
+                    modify:n.modify,
+                    status:n.status||'offline'
+                };
+                html+=_in.sprintf(_in.config.userList,n);
+            });
+            _in.inlist.html(html).find('li').each(function(){
+                var _t = $(this),id = parseInt(_t.attr('class').substr(4));
+                _in.userTarget[id] = _t;
+                _in.userData[id].status == 'online' && _t.addClass('on') && o++;
+            });
+            _in.inct.find('span').eq(0).text(o||0).end().eq(1).text(res.total||0);
         },
         //创建聊天窗口
         createDialog:function(uid){
@@ -216,8 +241,7 @@ $(function(){
                 var msg = _in.indialog[uid].textarea.val();
                 _in.indialog[uid].textarea.val('');
                 if(msg.length>0&&msg.length<200){
-                    _in.indialog[uid].msg.addClass('sending');
-                    
+                    //_in.indialog[uid].msg.addClass('sending');
                     var sent = {
                         t:_in.config.EVENT_TYPE.SPEAK,
                         d:{
@@ -225,18 +249,16 @@ $(function(){
                             msg:msg
                         }
                     },res = {
-                        'create':_in.getDatetime(true),
+                        'create':_in.getDatetime(),
                         'content':msg,
-                        'name':uid
+                        'name':_in.config.userInfo.name+'(我)'
                     }
                     _in.socket.send(JSON.stringify(sent));
                     
                     if(res.name){
-                        var msgBox = _in.indialog[uid].msg.append(_in.sprintf(_in.config.userHis, res)).removeClass('sending')[0];
+                        var msgBox = _in.indialog[uid].msg.append(_in.sprintf(_in.config.userHis, res))[0];//.removeClass('sending')
                         msgBox.scrollTop=msgBox.scrollHeight;
                     }
-                    if(_in.userData[uid].type==='temp')
-                        _in.initList();
                 }else{
                     alert('请输入消息内容(不大于200个字符)! ');
                 }
@@ -244,6 +266,8 @@ $(function(){
 
             //用户窗口状态
             _in.indialog[uid].status = 'none';
+            //用户bar状态
+            _in.indialog[uid].barStatus = 'none';
             //窗口索引
             _in.indialog[uid].index = _in.indialog[uid].index();
             //用户状态栏_in.indialog[uid].bar
@@ -271,7 +295,6 @@ $(function(){
                 _in.activeDialog(uid);
                 _in.hideUserBar(uid);
             });
-            _in.indialog[uid].barStatus = 'none';
         },
         //显示用户状态栏
         showUserBar:function(uid){
@@ -434,35 +457,11 @@ $(function(){
                 return data[arguments[1]]||def||'';
             });
         },
-        //通信核心
-        webComet:function(){
-            var _in = this, socket = window.WebSocket || window.MozWebSocket;
-            if(socket)
-                _in.socket = new socket(_in.config.wsURI);
-            if(_in.socket){
-                _in.socket.addEventListener('open',function(event){
-                    console.log('TIMESTAMP : '+event.timeStamp);
-                    _in.loadUI();
-                })
-                _in.socket.addEventListener('error',function(event){
-                    console.log('ERROR: ' + event.message);
-                })
-                _in.socket.addEventListener('message',function(event){
-                    console.log(event);
-                    console.log(_in.getDatetime(event.timeStamp))
-                })
-                _in.socket.addEventListener('close',function(event){
-                    console.log('CLOSE: ' + event.code + ', ' + event.reason);
-                });
-            }else{
-                alert('该浏览器不支持, 请使用Chrome or firefox.');
-            }
-        },
         //闪烁用户BAR
         flickerBar:function(uid){
             var _in = this, t = uid && _in.indialog[uid].barStatus=='block' ? _in.indialog[uid].bar : _in.inct;
             if(!t.hasClass('inctred') && !t.addClass('inctred').find('.ingif img').length){
-                t.find('.ingif').html('<img src="/img/xiaoxi.gif" />');
+                t.find('.ingif').html('<img src="/img/xiaoxi.gif" style="vertical-align:middle" />');
                 _in.titleFlicker();
             }
         },
@@ -477,7 +476,7 @@ $(function(){
         titleFlicker:function(){
             var o = true, t = this.docTitle;
             this.timeId = setInterval(function(){
-                document.title = (o ? '[新消息...]' : '[　　　　   ]') + t;
+                document.title = (o ? '[新消息...]' : '[　　　　]') + t;
                 o = !o;
             },400);
         },
@@ -486,37 +485,6 @@ $(function(){
                 clearInterval(this.timeId);
                 document.title = this.docTitle;
             }
-        },
-        //循环store
-        storePoll:function(){
-            var _in = this;
-            _in.storeInterval = setInterval(function(){
-                if(_in.writeLock===false){
-                    //活动的
-                    if(_in.isStamp){
-                        /*
-                         * 活动的列表
-                         * 1.读取未读消息,(之后保存至历史消息中..一天之内的)
-                         * 2.有新用户则加入用户列表中
-                         */
-                        _in.unReadList = JSON.parse(_in.store.get('unReadList'));//消息列表
-                        //闪烁提示
-                        _in.unReadUser = JSON.parse(_in.store.get('unReadUser'));
-                        //用户列表打开时,且聊天窗口不存在时
-                        if(_in.inuser.status=='block'){
-                            _in.eachFlicker();
-                        }
-                    }else{//正在监听的
-                        /*
-                         * 非活动的(暂放)
-                         * 1.加载用户列表,并存储已加载对象
-                         * 2.加载历史消息,并存储已加载对象
-                         */
-                        _in.historyMsg = JSON.parse(_in.store.get('historyMsg'));
-                        _in.userList = JSON.parse(_in.store.get('userList'));
-                    }
-                }
-            },1000);
         },
         //用户消息闪烁(动态加载消息在此)
         userFlicker:function(uid){
@@ -550,15 +518,20 @@ $(function(){
         },
         //循环用户闪烁
         eachFlicker:function(uid){
-            var _t = this;
-            if(_t.inuser.status=='block'){
-                if(uid){
-                    if(!_t.Finterval[uid]){
-                        _t.userFlicker(uid);
-                    }
-                }else{
-                    for(var i in _t.unReadUser){
-                        _t.userFlicker(i);
+            var _in = this;
+            if(uid && !_in.Finterval[uid] && _in.inuser.status=='block'){
+                if(_in.userData[uid]){
+                    if(_in.indialog[uid]){//如果窗口开启
+                        if(_in.indialog[uid].status=='none'){//如果窗口是显示的
+                            _in.flickerBar(uid);//@todo 闪烁用户状态
+                        }
+                        _in.loadHistory(uid);
+                    }else{
+                        var that = _in.userTarget[uid];
+                        if(that)
+                            _in.Finterval[uid] = setInterval(function(){
+                                that.toggleClass('m');
+                            },300);
                     }
                 }
             }
@@ -605,10 +578,10 @@ $(function(){
             }
         },
         getDatetime:function(ts,time){
-            var dt = ts ? new Date(ts) : new Date()
+            var dt = ts ? new Date(ts.toString().length>13 ? Number(ts.toString().substr(0,13)) : ts) : new Date()
             , s = dt.getFullYear() + '-' + (dt.getMonth() + 1) + '-' + dt.getDate() + (time  ? '' : (' ' +  dt.getHours() + ':' + dt.getMinutes() + ':' + dt.getSeconds()));
             return (s).replace(/([\-\: ])(\d{1})(?!\d)/g, '$10$2');
         }
     }
-    instantIm.init();
+    window.chat = instantIm.init();
 });

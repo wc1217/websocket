@@ -9,6 +9,14 @@
         <script type="text/javascript" src="js/instant.js"></script>
     </head>
     <body>
-        <div id="webIn" uid="1">TODO write content</div>
+        <div>选择用户登录</div>
+        <select name="" id="test">
+            <option value="1">测试用户1</option>
+            <option value="2">测试用户2</option>
+            <option value="3">测试用户3</option>
+            <option value="4">测试用户4</option>
+            <option value="5">测试用户5</option>
+        </select>
+        <button onclick="chat.init($('#test').val())">登录</button>
     </body>
 </html>

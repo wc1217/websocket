@@ -18,6 +18,8 @@ $(function(){
 
         Finterval:{},//消息闪烁
 
+        unReadList:{},//未读消息,暂放在变量里,以后修改为放在localStorage
+
         socket:null,//websocket
 
         docTitle:document.title,//网页标题
@@ -110,6 +112,18 @@ $(function(){
                         //对话
                         case EVENT_TYPE.SPEAK:
                             _in.logDump('Speak:' + _in.getDatetime(event.timeStamp));
+                            var n = data.d;
+                            if(!_in.unReadList[n.uid]){
+                                _in.unReadList[n.uid] = [];
+                            }
+                            //存储消息
+                            _in.unReadList[n.uid].push({
+                                content:n.msg,
+                                name:n.name,
+                                create:_in.getDatetime(event.timeStamp)
+                            });
+                            //提示有消息
+                            _in.userFlicker(n.uid);
                             break;
                         //用户列表
                         case EVENT_TYPE.LIST:
@@ -331,30 +345,17 @@ $(function(){
                 _in.barStatus = 'none';
             }
         },
-        //加载聊天记录
+        //加载未读聊天记录
         loadHistory:function(uid){
-            return;
-            var _in = this;
-            //---------------------------------以下加载消息------------------------------------------------------
-            try{
-                //历史消息
-
-                var html = '';
-                for(var m in _in.unReadList[uid]){
-                    html += _in.sprintf(_in.config.userHis, _in.unReadList[uid][m]);
-                }
-                var msg = _in.indialog[uid].msg.append(html)[0];
-                msg.scrollTop=msg.scrollHeight;
-                //}
-                _in.clearFlicker(uid);
-            }catch(e){
-                _in.writeLock=false;
+            var _in = this,html = '';
+            for(var m in _in.unReadList[uid]){
+                html += _in.sprintf(_in.config.userHis, _in.unReadList[uid][m]);
             }
-        // }
-        //---------------------------------以上加载消息------------------------------------------------------
-
-        //if(!$.isEmptyObject(data))
-        //    this.indialog[uid].msg.append(this.sprintf(this.config.userHis, data));
+            _in.unReadList[uid] = undefined;
+            delete _in.unReadList[uid];
+            var msg = _in.indialog[uid].msg.append(html)[0];
+            msg.scrollTop=msg.scrollHeight;
+            _in.clearFlicker(uid);
         },
         //重设窗口位置并显示
         showDialog:function(uid){
@@ -366,7 +367,7 @@ $(function(){
                 }
             }
             if(this.config.animate){
-                _in.show().animate(_in.seat, 'slow', 'easeOutBack' ,function(){
+                _in.show().animate(_in.seat, 'fast', 'easeInOutQuad' ,function(){
                     _in.status='block';
                 });
             }else{
@@ -383,12 +384,11 @@ $(function(){
                     top:40
                 }, 'fast', 'easeInBack', function(){
                     _in.hide().status='none';
-                    if(typeof fn == 'function')fn();
                 })
             }else{
                 _in.hide().status='none';
-                if(typeof fn == 'function')fn();
             }
+            if(typeof fn == 'function')fn();
         },
         //让窗口处于焦点
         activeDialog:function(uid){
@@ -486,52 +486,38 @@ $(function(){
                 document.title = this.docTitle;
             }
         },
-        //用户消息闪烁(动态加载消息在此)
+        //单个用户消息闪烁(动态加载消息在此)
         userFlicker:function(uid){
             var _in = this;
             //用户有未读消息, 存在用户列表中, 且没有开启闪烁
-            if(_in.unReadUser[uid]===true && !_in.Finterval[uid]){
-                //clearInterval(_in.Finterval[uid]);  //这里更改可以改为同步闪烁
-                //_in.Finterval[uid] = 0;
-                if(_in.userData[uid]){
-                    if(_in.indialog[uid]){//如果窗口开启
-                        if(_in.indialog[uid].status=='none'){//如果窗口是显示的
-                            _in.flickerBar(uid);//@todo 闪烁用户状态
-                        }
-                        _in.loadHistory(uid);
-                    }else{
-                        var that = _in.userTarget[uid];
-                        if(that)
-                            _in.Finterval[uid] = setInterval(function(){
-                                that.toggleClass('m');
-                            },300);
+            if(_in.userData[uid] && _in.unReadList[uid] && !_in.Finterval[uid]){
+                if(_in.indialog[uid]){//如果对话窗口开启
+                    if(_in.indialog[uid].status=='none'){//如果窗口是显示的
+                        _in.flickerBar(uid);//@todo 闪烁用户状态
                     }
+                    _in.loadHistory(uid);
+                }else if(_in.inuser.status=='block'){//列表窗口开启
+                    var that = _in.userTarget[uid];
+                    if(that)
+                        _in.Finterval[uid] = setInterval(function(){
+                            that.toggleClass('m');
+                        },300);
                 }else{
-                    _in.userData[uid] = {
-                        name:'加载中..',
-                        status:'offline',
-                        type:'loading'
-                    };
-                    _in.initList();
+                    _in.flickerBar();
                 }
             }
         },
-        //循环用户闪烁
+        //循环有未读消息的用户并闪烁
         eachFlicker:function(uid){
-            var _in = this;
-            if(uid && !_in.Finterval[uid] && _in.inuser.status=='block'){
-                if(_in.userData[uid]){
-                    if(_in.indialog[uid]){//如果窗口开启
-                        if(_in.indialog[uid].status=='none'){//如果窗口是显示的
-                            _in.flickerBar(uid);//@todo 闪烁用户状态
-                        }
-                        _in.loadHistory(uid);
-                    }else{
-                        var that = _in.userTarget[uid];
-                        if(that)
-                            _in.Finterval[uid] = setInterval(function(){
-                                that.toggleClass('m');
-                            },300);
+            var _t = this;
+            if(_t.inuser.status=='block'){
+                if(uid){
+                    if(!_t.Finterval[uid]){
+                        _t.userFlicker(uid);
+                    }
+                }else{
+                    for(var i in _t.unReadList){
+                        _t.userFlicker(i);
                     }
                 }
             }

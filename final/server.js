@@ -94,6 +94,8 @@ wss.on('connection', function(ws){
                 //通知在线用户更新用户列表(在线状态)
                 noticeOnline();
 
+                //推送未读消息
+
                 break;
             //退出
             case EVENT_TYPE.LOGOUT:
@@ -107,8 +109,11 @@ wss.on('connection', function(ws){
                     var opp = onlineUser[m.uid];
                     if(opp && opp.userId){
                         //消息转发到好友
+                        //标记消息来自发送人
+                        m.uid = ws.userId;
+                        m.name = $list[ws.userId].name;
                         opp.send(JSON.stringify({
-                            'd': m.msg,
+                            'd': m,
                             't': data.t
                         }));
                     }else{

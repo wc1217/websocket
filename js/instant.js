@@ -226,30 +226,16 @@ $(function(){
                 var _t = $(this), vv = $.trim(_t.val());
                 if(!vv.length){
                     if(_t.data('prevVal'))
-                        _in.initList({
-                            data:_in.userData
-                        });
+                        for(var ik in _in.userData){
+                            _in.userTarget[ik].show();
+                        }
                     return false;
                 }
                 _t.data('prevVal', vv);
-                var p= new RegExp('['+vv+']'), findData = {},html='';
+                var p= new RegExp('['+vv+']');
                 for(var ik in _in.userData){
-                    if(p.test(_in.userData[ik]['name']))
-                        findData[ik] = _in.userData[ik];
+                    _in.userTarget[ik].toggle(p.test(_in.userData[ik]['name']));
                 }
-                $.each(findData||[], function(i,n){
-                    _in.userData[n.uid] = {
-                        uid:n.uid,
-                        name:n.name,
-                        modify:n.modify,
-                        status:n.status||'offline'
-                    };
-                    html+=_in.sprintf(_in.config.userList,n);
-                });
-                _in.inlist.html(html).find('li').each(function(){
-                    var _t = $(this),id = parseInt(_t.attr('class').substr(4));
-                    _in.userData[id].status == 'online' && _t.addClass('on');
-                });
             });
             return _u;
         },

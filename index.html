@@ -3,13 +3,14 @@
     <head>
         <title>this websocket test</title>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <link rel="stylesheet" type="text/css" href="css/global.css" media="all" />
         <link rel="stylesheet" type="text/css" href="css/instantIm.css" media="all" />
         <script type="text/javascript" src="js/jquery-1.4.2.min.js"></script>
         <script type="text/javascript" src="js/jquery.easing.min.js"></script>
         <script type="text/javascript" src="js/instant.js"></script>
     </head>
     <body>
-        <div>选择用户登录</div>
+        选择用户登录 :
         <select name="" id="test">
             <option value="1">测试用户1</option>
             <option value="2">测试用户2</option>
@@ -18,5 +19,19 @@
             <option value="5">测试用户5</option>
         </select>
         <button onclick="chat.init($('#test').val())">登录</button>
+        <hr />
+        <h3>选择要聊天的用户</h3>
+        <div id="list" class="f16"><img src="/img/loading.gif" alt="" /></div>
     </body>
+    <script type="text/javascript">
+        $.getJSON('http://127.0.0.1:8080/chatlist/?back=?', function(data){
+            var list = '', test = '';
+            $.each(data, function(i,n){
+                list += '<a href="javascript:;" onclick="$.chatIn('+n['id']+')">'+n['name']+'</a><br />';
+                test += '<option value="'+n['id']+'">'+n['name']+'</option>';
+            });
+            $('#test').html(test);
+            $('#list').html(list);
+        });
+    </script>
 </html>

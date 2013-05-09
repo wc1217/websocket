@@ -31,7 +31,10 @@ $(function(){
                 'SPEAK':'s',//对话
                 'LIST':'l',//用户列表
                 'ERROR':'e',//错误
-                'HISTORY':'h'//对话记录
+                'HISTORY':'h',//对话记录
+                'SYSTEM':'t',//系统消息
+                'ADDUSER':'a',//好友
+                'AFFIRM':'f'//同意请求好友
             },
             debug:true,
             animate:!$.browser.msie,//开启动画(ie不开)?
@@ -45,11 +48,12 @@ $(function(){
             },
             userInfo:{},
             wrap:'<div id="instantIm"><div class="inbar"><div class="inct gb">联系人[<span class="cRed">0</span>/<span>0</span>]<span class="ingif"></span></div></div></div>',
-            list:'<div class="userList"><div class="intop gb"><div class="hand gb"></div><div class="intit">联系人</div><div class="linev"></div></div><div class="intip gb"><span class="gb"></span>这是联系人列表。</div><div class="inlist"><ul></ul></div><div class="inbot gb"><span class="gb"></span></div>',
+            list:'<div class="userList"><div class="intop gb"><div class="hand gb"></div><div class="intit">联系人</div><div class="linev"></div></div><div class="intip gb"><input type="text" class="find" placeholder="搜索好友..." /></div><div class="inlist"><ul></ul></div><div class="inbot gb"><span class="gb"></span></div>',
             userList:'<li class="uid-{$uid}"><a href="javascript:;" title="{$name}">{$name}</a></li>',
             dialog:'<div class="dialog"><div class="intop gb"><div class="hand gb handx"></div><div class="hand gb"></div><div class="intit">联系人</div></div><div class="intip gb"><span class="gb"></span><span></span></div><div class="msg"></div><div class="infoot"><div class="send"><textarea></textarea><div class="sb"><div class="gb">发送</div></div></div><div class="ftip"><span class="gb"></span><a href="javascript:;" style="float:right">《消息系统使用规则》</a><a href="javascript:;" target="_blank" class="chatlog">对话记录</a></div></div></div>',
             userBar:'<div class="dialogue gb" uid="{$uid}">与“{$name}”对话中...</div>',
-            userHis:'<div class="inname"><span>{$create}</span><a href="javascript:;">{$name}</a></div><div class="content">{$content}</div>'
+            userHis:'<div class="inname"><span>{$create}</span><a href="javascript:;">{$name}</a></div><div class="content">{$content}</div>',
+            system:'<div class="SMSG"><div class="t gb"><a class="right f18 close" href="javascript:;">×</a><div class="left">交易提示</div><div class="left"><img src="/img/t.gif" class="ling gb" alt="" /></div></div><div class="c"><div class="text break">{$msg}</div><div class="tr"><a class="b gb right" href="javascript:;">知道了</a></div></div></div>'
         },
         logDump:function(str) {
             this.config.debug && console.log(this.getDatetime() + ' : ' + str);
@@ -103,6 +107,10 @@ $(function(){
                             //登录成功在此认证
                             if(data.d){
                                 _in.config.userInfo = data.d;//得到令牌
+                                send({
+                                    't': EVENT_TYPE.LIST,
+                                    'd': data.d
+                                });
                             }
                             break;
                         //退出
@@ -138,6 +146,23 @@ $(function(){
                         case EVENT_TYPE.HISTORY:
 
                             break;
+                        //系统消息
+                        case EVENT_TYPE.SYSTEM:
+                            _in.alertSys(data.reply);
+                            break;
+                        //添加好友
+                        case EVENT_TYPE.ADDUSER:
+                            var t = _in.alertSys(data.reply);
+                            t.find('.affirm').click(function(){
+                                send({
+                                    't': EVENT_TYPE.AFFIRM,
+                                    'd': $(this).attr('value')
+                                });
+                                t.remove();
+                            }).find('.refuse').click(function(){
+                                t.remove();
+                            });
+                            break;
 
                         default :
                             _in.socket.close();
@@ -146,6 +171,7 @@ $(function(){
                 })
                 _in.socket.addEventListener('close',function(event){
                     _in.logDump('CLOSE: ' + event.code + ', ' + event.reason);
+                    alert('出现错误,错误代码:' + event.code);
                     _in.target && _in.target.remove();
                 });
             }else{
@@ -196,6 +222,35 @@ $(function(){
                 _in.createDialog(uid);
                 return false;
             });
+            _u.find('.find').keyup(function(){
+                var _t = $(this), vv = $.trim(_t.val());
+                if(!vv.length){
+                    if(_t.data('prevVal'))
+                        _in.initList({
+                            data:_in.userData
+                        });
+                    return false;
+                }
+                _t.data('prevVal', vv);
+                var p= new RegExp('['+vv+']'), findData = {},html='';
+                for(var ik in _in.userData){
+                    if(p.test(_in.userData[ik]['name']))
+                        findData[ik] = _in.userData[ik];
+                }
+                $.each(findData||[], function(i,n){
+                    _in.userData[n.uid] = {
+                        uid:n.uid,
+                        name:n.name,
+                        modify:n.modify,
+                        status:n.status||'offline'
+                    };
+                    html+=_in.sprintf(_in.config.userList,n);
+                });
+                _in.inlist.html(html).find('li').each(function(){
+                    var _t = $(this),id = parseInt(_t.attr('class').substr(4));
+                    _in.userData[id].status == 'online' && _t.addClass('on');
+                });
+            });
             return _u;
         },
         //加载用户列表(包含更新)
@@ -203,6 +258,7 @@ $(function(){
             var _in = this,html='',o = 0;
             $.each(res.data||[], function(i,n){
                 _in.userData[n.uid] = {
+                    uid:n.uid,
                     name:n.name,
                     modify:n.modify,
                     status:n.status||'offline'
@@ -546,27 +602,34 @@ $(function(){
             if(_in.userData[uid]){
                 _in.createDialog(uid);
             }else{
-                $.post('/chat/getName.html',{
-                    id:uid
-                }, function(n){
-                    if(n.name){
-                        _in.userData[uid] = {
-                            name:n.name,
-                            modify:new Date(),
-                            status:n.status,
-                            type:'temp'
-                        };
-                        _in.createDialog(uid);
-                    }else{
-                        alert('未找到该用户!');
-                    }
-                },'json');
+                if(confirm('该用户还不是您的好友,是否添加?')){
+                    _in.socket.send(JSON.stringify({
+                        t:_in.config.EVENT_TYPE.ADDUSER,
+                        d:uid
+                    }));
+                }
             }
         },
         getDatetime:function(ts,time){
             var dt = ts ? new Date(ts.toString().length>13 ? Number(ts.toString().substr(0,13)) : ts) : new Date()
             , s = dt.getFullYear() + '-' + (dt.getMonth() + 1) + '-' + dt.getDate() + (time  ? '' : (' ' +  dt.getHours() + ':' + dt.getMinutes() + ':' + dt.getSeconds()));
             return (s).replace(/([\-\: ])(\d{1})(?!\d)/g, '$10$2');
+        },
+        //系统消息
+        alertSys:function(v){
+            var s = $('body').append(this.sprintf(this.config.system, {
+                msg:v
+            })).find('.SMSG'), t = s.last(), l = s.length,
+            w = $(window),wt = w.scrollTop(),wh = w.height(),ww = w.width(),th = t.outerHeight(true),tw = t.outerWidth(true);
+            t.css({
+                top:wt+(wh-th)/2+(l*30),
+                left:(ww-tw)/2+(l*20),
+                zIndex:1113+l,
+                display:'block'
+            }).find('.close,.b').click(function(){
+                t.remove();
+            });
+            return t;
         }
     }
     window.chat = instantIm.init();

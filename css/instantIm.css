@@ -54,15 +54,18 @@
 #instantIm .dialog .infoot .ftip{height:23px; line-height:28px; margin-top:3px}
 #instantIm .dialog .infoot .ftip .gb{width:15px; height:17px; float:left; background-position:0 -129px; margin:5px 5px 0  0; display:inline}
 
+#instantIm .find{width:204px;margin:0 3px}
 
 /*系统消息*/
-.SMSG{position:absolute;/*left:50%;top:50%;*/border:1px solid #A2A2A2;;background:#F3F3F3;width:527px;/*margin:-83px 0 0 -263px;*/z-index:1113;display:none}
+.SMSG{position:absolute;/*left:50%;top:50%;*/border:1px solid #A2A2A2;;background:#F3F3F3;width:450px;/*margin:-83px 0 0 -263px;*/z-index:1113;display:none}
 .SMSG .gb{background:url('/img/systemMSG.gif') repeat-x 0 0;}
 .SMSG .t{height:28px;padding:0 8px;background-position:0 -57px;font-weight:700;line-height:28px}
 .SMSG .t .close{line-height:0.6;right:8px;top:5px;_line-height:1}
 .SMSG .t .ling{background-position:3px -85px;width:18px;height:13px;margin-top:8px}
 .SMSG .c{padding:12px;line-height:20px;color:#3d3d3d}
-.SMSG .c .text{min-height:80px;_height:80px;padding-bottom:6px}
+.SMSG .c .text{min-height:40px;_height:40px;padding-bottom:6px}
 .SMSG .c .tr{height:27px}
 .SMSG .c .tr .b{background-position:0 0;height:29px;width:69px;line-height:27px;text-align:center;display:block;color:#3d3d3d}
 .SMSG .b:hover{background-position:0 -28px;text-decoration:none}
+.SMSG .close{background:#999;color:#fff;padding:3px 4px 2px;position:absolute;right:8px;top:8px;_font-size:12px;_padding:3px 4px 1px 5px}
+.SMSG .close:hover{color:#FF6D6D;text-decoration:none}

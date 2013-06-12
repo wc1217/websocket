@@ -23,7 +23,7 @@ var debug = true
         response.end();
     }
 })
-, connection = mysql.createConnection('mysql://root:wc@localhost/chat?debug=["ComQueryPacket"]');
+, connection = mysql.createConnection('mysql://root@localhost/ysd?debug=["ComQueryPacket"]');
 
 /*****************/
 
@@ -63,7 +63,7 @@ wss.on('connection', function(ws){
     //刷新用户列表
     ws.upList = function(fn){
         //拉取好友
-        ws.userId && connection.query('select `fid` as `uid`,`fname` as `name`,`modify` from friend where uid=? and status=1', [ws.userId], function(err, results){
+        ws.userId && connection.query('select `fid` as `uid`,`fname` as `name`,`modify` from ysd_friend where uid=? and status=1', [ws.userId], function(err, results){
             if(err) throw err;
             $list = {};
             for(var fd in results){
@@ -100,7 +100,7 @@ wss.on('connection', function(ws){
                 //在此认证用户
                 var token = data.d.split(','), u = token[1], v = token[0];
                 logSave(token);
-                connection.query('select * from user where id=? limit 1', [u], function(err, uData){
+                connection.query('select * from ysd_user where id=? limit 1', [u], function(err, uData){
                     if(err) throw err;
                     var me = uData.length ? uData[0] : false;
                     if(!me || !me['id']){
@@ -181,17 +181,17 @@ wss.on('connection', function(ws){
             //添加好友请求
             case EVENT_TYPE.ADDUSER:
                 var d = parseInt(data.d)||0;
-                connection.query('select * from user where id=? limit 1', [d], function(err, uData){
+                connection.query('select * from ysd_user where id=? limit 1', [d], function(err, uData){
                     if(!uData[0]){
                         ws.sendSys('用户不存在!');
                         return;
                     }
-                    connection.query('select * from friend where uid=? and fid=? limit 1', [ws.userId,d], function(err, results){
+                    connection.query('select * from ysd_friend where uid=? and fid=? limit 1', [ws.userId,d], function(err, results){
                         if(err) throw err;
                         var rs = '已向该用户发送验证消息, 请等待对方验证好友请求!';
                         if(!results[0]){
                             //insert
-                            connection.query('insert into friend(uid,fid,fname,status) values(?,?,?,0)',[ws.userId,d,uData[0]['name']]);
+                            connection.query('insert into ysd_friend(uid,fid,fname,status) values(?,?,?,0)',[ws.userId,d,uData[0]['name']]);
                         }else if(results[0]['status']==0){
                             rs = '已向该用户发送验证消息, 不用重复操作!';
                         }else if(results[0]['status']==1){
@@ -213,14 +213,14 @@ wss.on('connection', function(ws){
                 break;
             //同意请求
             case EVENT_TYPE.AFFIRM:
-                connection.query('select * from user where id=? limit 1', [data.d], function(err, uData){
+                connection.query('select * from ysd_user where id=? limit 1', [data.d], function(err, uData){
                     if(err) throw err;
                     if(!uData[0]){
                         ws.sendSys('用户不存在!');
                         return;
                     }
-                    connection.query('update friend set status=1 where uid=? and fid=?',[data.d,ws.userId]);
-                    connection.query('insert into friend(uid,fid,fname,status) values(?,?,?,1)',[ws.userId,data.d,uData[0]['name']]);
+                    connection.query('update ysd_friend set status=1 where uid=? and fid=?',[data.d,ws.userId]);
+                    connection.query('insert into ysd_friend(uid,fid,fname,status) values(?,?,?,1)',[ws.userId,data.d,uData[0]['name']]);
                     ws.upList(function(list){
                         //通知在线用户更新用户列表(在线状态)
                         noticeOnline($list);
